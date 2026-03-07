@@ -22,5 +22,10 @@ class MainActivity : Activity() {
             UrlRouter.navigation(this, "sample://web?url=https://example.com")
                 .start()
         }
+
+        findViewById<Button>(R.id.btn_navigate_missing).setOnClickListener {
+            UrlRouter.navigation(this, "sample://missing")
+                .start()
+        }
     }
 }

@@ -1,7 +1,9 @@
 package me.jerry.urlrouter.sample
 
 import android.app.Application
+import android.widget.Toast
 import me.jerry.urlrouter.Target
+import me.jerry.urlrouter.TargetNotFoundHandler
 import me.jerry.urlrouter.UrlRouter
 
 class App : Application() {
@@ -11,6 +13,12 @@ class App : Application() {
 
         UrlRouter.configuration()
             .setDebugEnabled(BuildConfig.DEBUG)
+            .addTargetNotFoundHandler(object : TargetNotFoundHandler {
+                override fun handle(uri: android.net.Uri): Boolean {
+                    Toast.makeText(this@App, "Route not found: $uri", Toast.LENGTH_SHORT).show()
+                    return true
+                }
+            })
 
         // Note: We don't need to manually map URLs here because
         // the AndroidManifest.xml already defines intent-filters
