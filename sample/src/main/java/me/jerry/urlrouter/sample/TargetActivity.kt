@@ -10,7 +10,9 @@ class TargetActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_target)
 
-        val from = intent.getStringExtra("from") ?: "unknown"
+        val from = intent.getStringExtra("from")
+            ?: intent.data?.getQueryParameter("from")
+            ?: "unknown"
         findViewById<TextView>(R.id.tv_from).text = "From: $from"
     }
 }

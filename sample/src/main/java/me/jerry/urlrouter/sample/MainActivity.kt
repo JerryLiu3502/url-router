@@ -13,8 +13,7 @@ class MainActivity : Activity() {
         setContentView(R.layout.activity_main)
 
         findViewById<Button>(R.id.btn_navigate_target).setOnClickListener {
-            UrlRouter.navigation(this, "sample://target")
-                .putExtra("from", "MainActivity")
+            UrlRouter.navigation(this, "sample://target?from=MainActivity")
                 .start()
         }
 
