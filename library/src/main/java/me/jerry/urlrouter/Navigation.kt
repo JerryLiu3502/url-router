@@ -1,5 +1,6 @@
 package me.jerry.urlrouter
 
+import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
@@ -63,5 +64,15 @@ class Navigation(
      */
     fun start() {
         urlRouter.startNavigation(context, currentUri, flags, extras)
+    }
+
+    /**
+     * Start navigation for result
+     *
+     * @param activity The activity to start for result
+     * @param requestCode Request code for result identification
+     */
+    fun startForResult(activity: Activity, requestCode: Int) {
+        urlRouter.startNavigationForResult(activity, currentUri, flags, extras, requestCode)
     }
 }

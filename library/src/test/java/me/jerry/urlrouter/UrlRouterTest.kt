@@ -76,4 +76,17 @@ class UrlRouterTest {
 
         assertFalse(result)
     }
+
+    @Test
+    fun navigation_startForResult_buildsSuccessfully() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://detail", Target("DetailActivity"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val navigation = UrlRouter.navigation(activity, "sample://detail")
+
+        // Just verify the method exists and doesn't throw
+        // Actual startActivityForResult verification requires more complex Robolectric setup
+        navigation.startForResult(activity, 1001)
+    }
 }

@@ -189,4 +189,74 @@ object UrlRouter {
             context.startActivity(intent)
         }
     }
+
+    /**
+     * Internal method to start navigation for result
+     */
+    internal fun startNavigationForResult(
+        activity: Activity,
+        originalUri: Uri,
+        flags: Int,
+        extras: Bundle,
+        requestCode: Int
+    ) {
+        if (configuration.debugEnabled) {
+            Log.d("UrlRouter", "Navigating for result to: $originalUri, requestCode=$requestCode")
+        }
+
+        // Step 1: Request interceptors
+        for (interceptor in configuration.getRequestInterceptors()) {
+            if (interceptor.intercept(originalUri)) {
+                if (configuration.debugEnabled) {
+                    Log.d("UrlRouter", "Request intercepted, stopping navigation")
+                }
+                return
+            }
+        }
+
+        // Step 2: Find target
+        val target = targetMap.find(originalUri)
+
+        if (target == null) {
+            // Step 3: Target not found - try handlers
+            var handled = false
+            for (handler in configuration.getTargetNotFoundHandlers()) {
+                if (handler.handle(originalUri)) {
+                    handled = true
+                    break
+                }
+            }
+
+            if (!handled && configuration.debugEnabled) {
+                Log.w("UrlRouter", "No target found for: $originalUri")
+            }
+            return
+        }
+
+        // Step 4: Build target URI
+        val targetUri = target.buildUri(originalUri)
+
+        if (configuration.debugEnabled) {
+            Log.d("UrlRouter", "Resolved target: ${target.className}, uri: $targetUri")
+        }
+
+        // Step 5: Target interceptors
+        for (interceptor in configuration.getTargetInterceptors()) {
+            if (interceptor.intercept(originalUri, targetUri)) {
+                if (configuration.debugEnabled) {
+                    Log.d("UrlRouter", "Target intercepted, stopping navigation")
+                }
+                return
+            }
+        }
+
+        // Step 6: Create and start Intent for result
+        val intent = configuration.intentHandler.createIntent(activity, target, targetUri)
+        intent.putExtras(extras)
+        if (flags != 0) {
+            intent.addFlags(flags)
+        }
+        
+        activity.startActivityForResult(intent, requestCode)
+    }
 }
