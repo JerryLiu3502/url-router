@@ -15,5 +15,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "UrlRouter"
-include ':library'
-include ':sample'
+include(":library")
+include(":sample")

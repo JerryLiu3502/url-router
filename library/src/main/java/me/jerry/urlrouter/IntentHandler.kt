@@ -13,7 +13,7 @@ interface IntentHandler {
      * @param context The context
      * @param target The resolved target
      * @param uri The target URI with parameters
-     * @return The created Intent, or null if unable to create
+     * @return The created Intent
      */
-    fun createIntent(context: Context, target: Target, uri: android.net.Uri): Intent?
+    fun createIntent(context: Context, target: Target, uri: android.net.Uri): Intent
 }
