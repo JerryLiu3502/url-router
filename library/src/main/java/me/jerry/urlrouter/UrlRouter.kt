@@ -94,6 +94,29 @@ object UrlRouter {
     }
 
     /**
+     * Pop back the current activity and optionally navigate to a fallback URL
+     * 
+     * @param context Context
+     * @param fallbackUrl Optional URL to navigate to after popping back
+     * @return true if popped back successfully, false otherwise
+     */
+    fun popBack(context: Context, fallbackUrl: String? = null): Boolean {
+        if (context is Activity) {
+            if (fallbackUrl != null) {
+                // Pop back then navigate to fallback
+                context.finish()
+                navigation(context, fallbackUrl).start()
+                return true
+            } else {
+                // Just pop back
+                context.finish()
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
      * Internal method to start navigation
      */
     internal fun startNavigation(

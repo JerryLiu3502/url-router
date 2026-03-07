@@ -1,10 +1,12 @@
 package me.jerry.urlrouter
 
+import android.app.Activity
 import android.net.Uri
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -50,6 +52,28 @@ class UrlRouterTest {
         UrlRouter.remove("sample://home")
 
         val result = UrlRouter.canOpen("sample://home")
+        assertFalse(result)
+    }
+
+    @Test
+    fun popBack_withoutFallback_finishesActivity() {
+        UrlRouter.clear()
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+
+        val result = UrlRouter.popBack(activity)
+
+        assertTrue(result)
+        assertTrue(activity.isFinishing)
+    }
+
+    @Test
+    fun popBack_withContextNotActivity_returnsFalse() {
+        UrlRouter.clear()
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val context = activity.application
+
+        val result = UrlRouter.popBack(context)
+
         assertFalse(result)
     }
 }
