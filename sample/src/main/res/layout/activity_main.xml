@@ -25,6 +25,12 @@
         android:text="Navigate to Web"/>
 
     <Button
+        android:id="@+id/btn_navigate_user"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Navigate to User 42"/>
+
+    <Button
         android:id="@+id/btn_navigate_missing"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

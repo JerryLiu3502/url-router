@@ -13,6 +13,7 @@ class TargetActivity : Activity() {
         val from = intent.getStringExtra("from")
             ?: intent.data?.getQueryParameter("from")
             ?: "unknown"
-        findViewById<TextView>(R.id.tv_from).text = "From: $from"
+        val userId = intent.getStringExtra("id") ?: "none"
+        findViewById<TextView>(R.id.tv_from).text = "From: $from | id: $userId"
     }
 }

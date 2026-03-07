@@ -22,6 +22,11 @@ class MainActivity : Activity() {
                 .start()
         }
 
+        findViewById<Button>(R.id.btn_navigate_user).setOnClickListener {
+            UrlRouter.navigation(this, "sample://user/42?from=PathTemplate")
+                .start()
+        }
+
         findViewById<Button>(R.id.btn_navigate_missing).setOnClickListener {
             UrlRouter.navigation(this, "sample://missing")
                 .start()

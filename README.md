@@ -5,9 +5,11 @@ A lightweight, modern URL router for Android applications.
 ## Features
 
 - **URI Routing**: Map custom URL schemes to Activities
+- **Path Parameters**: Register routes like `sample://user/{id}`
 - **Interceptor Chain**: Pre-process and post-process navigation
 - **Fallback Handling**: Handle cases when no target is found
-- **Parameter Passing**: Pass query parameters and extras seamlessly
+- **Parameter Passing**: Auto-copy query params and path params into `Intent` extras
+- **Router Utilities**: `canOpen()` pre-check and `remove()` unregister APIs
 - **Simple API**: Clean, builder-based API
 
 ## Quick Start
@@ -39,7 +41,11 @@ class App : Application() {
         UrlRouter.apply(
             mapOf(
                 "myapp://home" to Target(HomeActivity::class.java.name),
-                "myapp://profile" to Target(ProfileActivity::class.java.name)
+                "myapp://profile" to Target(ProfileActivity::class.java.name),
+                "myapp://user/{id}" to Target(
+                    UserActivity::class.java.name,
+                    pathTemplate = "/user/{id}"
+                )
             )
         )
     }
@@ -60,6 +66,25 @@ Or with query parameters:
 UrlRouter.navigation(this, "myapp://profile?userId=123")
     .start()
 ```
+
+Or with path parameters:
+
+```kotlin
+UrlRouter.navigation(this, "myapp://user/42?from=feed")
+    .start()
+
+val canOpen = UrlRouter.canOpen("myapp://user/42")
+UrlRouter.remove("myapp://legacy")
+```
+
+## Sample Demo
+
+The `sample` app demonstrates:
+- normal routing to `TargetActivity`
+- path-template routing via `sample://user/42`
+- request interception for `sample://blocked`
+- target interception for `sample://web`
+- fallback handling for unknown routes
 
 ## Architecture
 
