@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Maps URLs to Targets for routing.
  *
  * The mapping uses the scheme + host + path as the key.
+ * Supports path parameters like "/user/{id}".
  */
 class TargetMap {
 
@@ -37,12 +38,43 @@ class TargetMap {
         val fullKey = "${uri.scheme}://${uri.authority}${uri.path}"
         map[fullKey]?.let { return it }
 
+        // Try path template match (e.g., "/user/{id}")
+        val schemeHost = "${uri.scheme}://${uri.authority}"
+        val uriPath = uri.path ?: ""
+        for ((key, target) in map) {
+            if (key.startsWith(schemeHost) && target.pathTemplate != null) {
+                val templatePath = target.pathTemplate
+                if (matchesPathTemplate(templatePath, uriPath)) {
+                    return target
+                }
+            }
+        }
+
         // Try host-only match
         uri.authority?.let { authority ->
             map["${uri.scheme}://$authority"]?.let { return it }
         }
 
         return null
+    }
+
+    /**
+     * Check if a URI path matches a template path
+     */
+    private fun matchesPathTemplate(template: String, uriPath: String): Boolean {
+        val templateSegments = template.split("/")
+        val uriSegments = uriPath.split("/")
+
+        if (templateSegments.size != uriSegments.size) return false
+
+        for ((i, segment) in templateSegments.withIndex()) {
+            if (segment.startsWith("{") && segment.endsWith("}")) {
+                continue // Path parameter, matches anything
+            }
+            if (segment != uriSegments[i]) return false
+        }
+
+        return true
     }
 
     /**

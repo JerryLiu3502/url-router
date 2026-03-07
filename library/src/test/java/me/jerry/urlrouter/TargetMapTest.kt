@@ -35,4 +35,27 @@ class TargetMapTest {
 
         assertNull(resolved)
     }
+
+    @Test
+    fun find_matchesPathTemplateWithParameters() {
+        val map = TargetMap()
+        val userTarget = Target("UserActivity", pathTemplate = "/user/{id}")
+
+        map.add("sample://user/{id}", userTarget)
+
+        val resolved = map.find(Uri.parse("sample://user/123"))
+
+        assertEquals(userTarget, resolved)
+    }
+
+    @Test
+    fun target_extractPathParams_extractsCorrectly() {
+        val target = Target("UserActivity", pathTemplate = "/user/{id}/post/{postId}")
+        val uri = Uri.parse("sample://user/42/post/99")
+
+        val bundle = target.extractPathParams(uri)
+
+        assertEquals("42", bundle.getString("id"))
+        assertEquals("99", bundle.getString("postId"))
+    }
 }

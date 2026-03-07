@@ -15,6 +15,12 @@ class DefaultIntentHandler : IntentHandler {
             setClassName(context, target.className)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
+            // Add path parameters from template
+            target.extractPathParams(uri).keySet().forEach { key ->
+                putExtra(key, target.extractPathParams(uri).getString(key))
+            }
+
+            // Add query parameters
             uri.queryParameterNames.forEach { key ->
                 val values = uri.getQueryParameters(key)
                 when (values.size) {
