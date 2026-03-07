@@ -1,6 +1,5 @@
 package me.jerry.urlrouter
 
-import android.content.ComponentName
 import android.net.Uri
 
 /**
@@ -44,12 +43,5 @@ data class Target(
         }
         
         return builder.build()
-    }
-
-    /**
-     * Get the ComponentName for starting the Activity
-     */
-    fun toComponentName(): ComponentName {
-        return ComponentName(android.app.Application::class.java.`package`.name, className)
     }
 }

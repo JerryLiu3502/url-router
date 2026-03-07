@@ -1,6 +1,5 @@
 package me.jerry.urlrouter
 
-import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
@@ -11,8 +10,9 @@ import android.os.Bundle
 class Navigation(
     private val context: Context,
     private val urlRouter: UrlRouter,
-    private val uri: Uri
+    uri: Uri
 ) {
+    private var currentUri: Uri = uri
     private var flags: Int = 0
     private val extras = Bundle()
 
@@ -28,8 +28,9 @@ class Navigation(
      * Add a query parameter
      */
     fun appendQueryParameter(key: String, value: String): Navigation {
-        val builder = uri.buildUpon()
-        builder.appendQueryParameter(key, value)
+        currentUri = currentUri.buildUpon()
+            .appendQueryParameter(key, value)
+            .build()
         return this
     }
 
@@ -61,6 +62,6 @@ class Navigation(
      * Start the navigation
      */
     fun start() {
-        urlRouter.startNavigation(context, uri, flags, extras)
+        urlRouter.startNavigation(context, currentUri, flags, extras)
     }
 }
