@@ -30,19 +30,16 @@ data class Target(
     fun extractPathParams(uri: Uri): Bundle {
         val bundle = Bundle()
         val template = pathTemplate ?: return bundle
-        val uriPath = uri.path ?: return bundle
 
-        val templateSegments = template.split("/")
-        val uriSegments = uriPath.split("/")
+        val templateSegments = template.routeSegments()
+        val uriSegments = uri.routeSegments()
 
         if (templateSegments.size != uriSegments.size) return bundle
 
-        for ((i, segment) in templateSegments.withIndex()) {
+        for ((index, segment) in templateSegments.withIndex()) {
             if (segment.startsWith("{") && segment.endsWith("}")) {
                 val paramName = segment.drop(1).dropLast(1)
-                if (i < uriSegments.size) {
-                    bundle.putString(paramName, uriSegments[i])
-                }
+                bundle.putString(paramName, uriSegments[index])
             }
         }
 
@@ -58,18 +55,31 @@ data class Target(
         } else {
             Uri.parse("app://").buildUpon()
         }
-        
+
         // Use original host and path
         originalUri.host?.let { builder.authority(it) }
         originalUri.path?.let { builder.path(it) }
-        
+
         // Copy query parameters
         originalUri.queryParameterNames.forEach { key ->
             originalUri.getQueryParameters(key).forEach { value ->
                 builder.appendQueryParameter(key, value)
             }
         }
-        
+
         return builder.build()
+    }
+}
+
+internal fun String.routeSegments(): List<String> {
+    return trim('/')
+        .split("/")
+        .filter { it.isNotEmpty() }
+}
+
+internal fun Uri.routeSegments(): List<String> {
+    return buildList {
+        authority?.takeIf { it.isNotEmpty() }?.let { add(it) }
+        pathSegments.filter { it.isNotEmpty() }.forEach { add(it) }
     }
 }

@@ -18,7 +18,7 @@ class TargetMap {
      */
     fun add(sourceUrl: String, target: Target) {
         val key = normalizeKey(sourceUrl)
-        map[key] = target
+        map[key] = enrichTarget(sourceUrl, target)
     }
 
     /**
@@ -34,23 +34,19 @@ class TargetMap {
      * Find a target for the given URI
      */
     fun find(uri: Uri): Target? {
-        // Try full match: scheme + host + path
         val fullKey = "${uri.scheme}://${uri.authority}${uri.path}"
         map[fullKey]?.let { return it }
 
-        // Try path template match (e.g., "/user/{id}")
-        val schemeHost = "${uri.scheme}://${uri.authority}"
-        val uriPath = uri.path ?: ""
+        val routeSegments = uri.routeSegments()
         for ((key, target) in map) {
-            if (key.startsWith(schemeHost) && target.pathTemplate != null) {
-                val templatePath = target.pathTemplate
-                if (matchesPathTemplate(templatePath, uriPath)) {
-                    return target
-                }
+            if (!key.startsWith("${uri.scheme}://")) continue
+
+            val template = target.pathTemplate ?: continue
+            if (matchesPathTemplate(template, routeSegments)) {
+                return target
             }
         }
 
-        // Try host-only match
         uri.authority?.let { authority ->
             map["${uri.scheme}://$authority"]?.let { return it }
         }
@@ -61,17 +57,16 @@ class TargetMap {
     /**
      * Check if a URI path matches a template path
      */
-    private fun matchesPathTemplate(template: String, uriPath: String): Boolean {
-        val templateSegments = template.split("/")
-        val uriSegments = uriPath.split("/")
+    private fun matchesPathTemplate(template: String, routeSegments: List<String>): Boolean {
+        val templateSegments = template.routeSegments()
 
-        if (templateSegments.size != uriSegments.size) return false
+        if (templateSegments.size != routeSegments.size) return false
 
-        for ((i, segment) in templateSegments.withIndex()) {
+        for ((index, segment) in templateSegments.withIndex()) {
             if (segment.startsWith("{") && segment.endsWith("}")) {
-                continue // Path parameter, matches anything
+                continue
             }
-            if (segment != uriSegments[i]) return false
+            if (segment != routeSegments[index]) return false
         }
 
         return true
@@ -102,5 +97,20 @@ class TargetMap {
     private fun normalizeKey(url: String): String {
         val uri = Uri.parse(url)
         return "${uri.scheme}://${uri.authority}${uri.path}"
+    }
+
+    private fun enrichTarget(sourceUrl: String, target: Target): Target {
+        if (target.pathTemplate != null || !sourceUrl.contains('{')) {
+            return target
+        }
+
+        val uri = Uri.parse(sourceUrl)
+        val template = buildString {
+            append('/')
+            uri.authority?.takeIf { it.isNotEmpty() }?.let { append(it) }
+            uri.path?.takeIf { it.isNotEmpty() }?.let { append(it) }
+        }
+
+        return target.copy(pathTemplate = template)
     }
 }

@@ -26,5 +26,10 @@ class MainActivity : Activity() {
             UrlRouter.navigation(this, "sample://missing")
                 .start()
         }
+
+        findViewById<Button>(R.id.btn_navigate_blocked).setOnClickListener {
+            UrlRouter.navigation(this, "sample://blocked")
+                .start()
+        }
     }
 }
