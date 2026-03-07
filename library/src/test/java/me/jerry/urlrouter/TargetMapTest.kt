@@ -58,4 +58,15 @@ class TargetMapTest {
         assertEquals("42", bundle.getString("id"))
         assertEquals("99", bundle.getString("postId"))
     }
+
+    @Test
+    fun remove_removesMapping() {
+        val map = TargetMap()
+        map.add("sample://home", Target("HomeActivity"))
+
+        map.remove("sample://home")
+
+        val resolved = map.find(Uri.parse("sample://home"))
+        assertNull(resolved)
+    }
 }

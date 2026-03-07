@@ -57,6 +57,28 @@ object UrlRouter {
     }
 
     /**
+     * Remove a mapping by URL
+     */
+    fun remove(url: String) {
+        targetMap.remove(url)
+    }
+
+    /**
+     * Check if a URL can be opened (has a matching target)
+     */
+    fun canOpen(url: String): Boolean {
+        val uri = Uri.parse(url)
+        return targetMap.find(uri) != null
+    }
+
+    /**
+     * Check if a URI can be opened (has a matching target)
+     */
+    fun canOpen(uri: Uri): Boolean {
+        return targetMap.find(uri) != null
+    }
+
+    /**
      * Create a Navigation for the given URL
      */
     fun navigation(context: Context, url: String): Navigation {
