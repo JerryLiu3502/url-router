@@ -30,7 +30,12 @@ class App : Application() {
         UrlRouter.configuration()
             .setDebugEnabled(BuildConfig.DEBUG)
             .addRequestInterceptor(LogInterceptor())
-        
+            .addTargetNotFoundHandler(object : TargetNotFoundHandler {
+                override fun handle(uri: Uri): Boolean {
+                    return false
+                }
+            })
+
         UrlRouter.apply(
             mapOf(
                 "myapp://home" to Target(HomeActivity::class.java.name),
@@ -58,6 +63,15 @@ UrlRouter.navigation(this, "myapp://profile?userId=123")
 
 ## Architecture
 
+Routing flow:
+- incoming `Uri`
+- request interceptors
+- target lookup in `TargetMap`
+- target interceptors
+- intent creation and launch
+- optional not-found handlers
+
+
 - `UrlRouter` - Main entry point
 - `Configuration` - Router configuration
 - `Target` - Target Activity mapping
@@ -66,6 +80,7 @@ UrlRouter.navigation(this, "myapp://profile?userId=123")
 - `RequestInterceptor` - Pre-process URLs
 - `TargetInterceptor` - Post-process resolved targets
 - `TargetNotFoundHandler` - Handle unmatched URLs
+- `IntentHandler` - Customize how Intents are created
 
 ## Sample App
 

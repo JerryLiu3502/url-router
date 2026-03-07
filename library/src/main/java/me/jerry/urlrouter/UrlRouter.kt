@@ -15,7 +15,10 @@ import android.util.Log
  * UrlRouter.configuration()
  *     .setDebugEnabled(true)
  *     .addRequestInterceptor(LogInterceptor())
- *     .apply(mappings)
+ *
+ * UrlRouter.apply(
+ *     mapOf("myapp://home" to Target(HomeActivity::class.java.name))
+ * )
  *
  * UrlRouter.navigation(context, "myapp://home").start()
  * ```
