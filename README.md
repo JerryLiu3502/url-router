@@ -73,6 +73,14 @@ UrlRouter.navigation(this, "myapp://profile?userId=123")
     .start()
 ```
 
+Or append multiple query parameters at once:
+
+```kotlin
+UrlRouter.navigation(this, "myapp://profile")
+    .appendQueryParameters(mapOf("userId" to "123", "tab" to "posts"))
+    .start()
+```
+
 Or with path parameters:
 
 ```kotlin
