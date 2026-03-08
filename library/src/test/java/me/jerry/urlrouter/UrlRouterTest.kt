@@ -183,4 +183,26 @@ class UrlRouterTest {
         assertFalse(called)
     }
 
+
+
+    @Test
+    fun navigation_putExtrasIntent_mergesIntentExtrasIntoResolvedIntent() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val sourceIntent = android.content.Intent().apply {
+            putExtra("userId", 7)
+            putExtra("from", "intent")
+        }
+
+        val intent = UrlRouter.navigation(activity, "sample://home")
+            .putExtras(sourceIntent)
+            .getIntent()
+
+        assertNotNull(intent)
+        assertEquals(7, intent?.getIntExtra("userId", -1))
+        assertEquals("intent", intent?.getStringExtra("from"))
+    }
+
 }

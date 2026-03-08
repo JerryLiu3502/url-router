@@ -68,6 +68,14 @@ class Navigation(
     }
 
     /**
+     * Put all extras from an existing Intent.
+     */
+    fun putExtras(intent: Intent): Navigation {
+        intent.extras?.let(extras::putAll)
+        return this
+    }
+
+    /**
      * Start the navigation
      */
     fun start() {
