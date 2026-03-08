@@ -153,4 +153,34 @@ class UrlRouterTest {
         assertFalse(navigation.hasTarget())
         assertNull(navigation.getIntent())
     }
+
+
+    @Test
+    fun navigation_ifIntentNonNullSendTo_invokesReceiverWhenResolved() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val navigation = UrlRouter.navigation(activity, "sample://home?from=test")
+
+        var captured: android.content.Intent? = null
+        navigation.ifIntentNonNullSendTo(IntentReceiver { captured = it })
+
+        assertNotNull(captured)
+        assertEquals("test", captured?.getStringExtra("from"))
+    }
+
+    @Test
+    fun navigation_ifIntentNonNullSendTo_skipsReceiverWhenUnresolved() {
+        UrlRouter.clear()
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val navigation = UrlRouter.navigation(activity, "sample://missing")
+
+        var called = false
+        navigation.ifIntentNonNullSendTo(IntentReceiver { called = true })
+
+        assertFalse(called)
+    }
+
 }

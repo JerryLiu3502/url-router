@@ -7,6 +7,13 @@ import android.net.Uri
 import android.os.Bundle
 
 /**
+ * Receives a resolved Intent before navigation starts.
+ */
+fun interface IntentReceiver {
+    fun onReceive(intent: Intent)
+}
+
+/**
  * Navigation builder for UrlRouter.
  */
 class Navigation(
@@ -79,6 +86,14 @@ class Navigation(
      */
     fun getIntent(): Intent? {
         return urlRouter.createIntent(context, currentUri, flags, extras)
+    }
+
+    /**
+     * Invoke the receiver when a resolved intent exists.
+     */
+    fun ifIntentNonNullSendTo(receiver: IntentReceiver): Navigation {
+        getIntent()?.let(receiver::onReceive)
+        return this
     }
 
     /**
