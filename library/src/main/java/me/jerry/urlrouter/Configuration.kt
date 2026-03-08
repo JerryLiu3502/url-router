@@ -11,6 +11,7 @@ class Configuration {
     private val requestInterceptors = mutableListOf<RequestInterceptor>()
     private val targetInterceptors = mutableListOf<TargetInterceptor>()
     private val targetNotFoundHandlers = mutableListOf<TargetNotFoundHandler>()
+    private val routeAspects = mutableListOf<RouteAspect>()
 
     /**
      * Add a request interceptor
@@ -37,6 +38,14 @@ class Configuration {
     }
 
     /**
+     * Add a route aspect observer.
+     */
+    fun addRouteAspect(aspect: RouteAspect): Configuration {
+        routeAspects.add(aspect)
+        return this
+    }
+
+    /**
      * Get all request interceptors
      */
     fun getRequestInterceptors(): List<RequestInterceptor> = requestInterceptors.toList()
@@ -52,6 +61,11 @@ class Configuration {
     fun getTargetNotFoundHandlers(): List<TargetNotFoundHandler> = targetNotFoundHandlers.toList()
 
     /**
+     * Get all route aspects.
+     */
+    fun getRouteAspects(): List<RouteAspect> = routeAspects.toList()
+
+    /**
      * Enable/disable debug mode
      */
     fun setDebugEnabled(enabled: Boolean): Configuration {
@@ -64,6 +78,19 @@ class Configuration {
      */
     fun setIntentHandler(handler: IntentHandler): Configuration {
         intentHandler = handler
+        return this
+    }
+
+    /**
+     * Reset configuration to defaults.
+     */
+    fun reset(): Configuration {
+        debugEnabled = false
+        intentHandler = DefaultIntentHandler()
+        requestInterceptors.clear()
+        targetInterceptors.clear()
+        targetNotFoundHandlers.clear()
+        routeAspects.clear()
         return this
     }
 }

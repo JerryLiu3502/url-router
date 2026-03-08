@@ -70,6 +70,30 @@ class StackNavigation internal constructor(
     }
 
     /**
+     * Merge multiple result values into the returning payload.
+     */
+    fun result(bundle: Bundle): StackNavigation {
+        resultExtras.putAll(bundle)
+        return this
+    }
+
+    /**
+     * Copy result values from an existing Intent.
+     */
+    fun result(intent: Intent): StackNavigation {
+        intent.extras?.let(resultExtras::putAll)
+        return this
+    }
+
+    /**
+     * Merge multiple result values from a map.
+     */
+    fun results(values: Map<String, Any?>): StackNavigation {
+        values.forEach { (key, value) -> result(key, value) }
+        return this
+    }
+
+    /**
      * Finish tracked activities and optionally navigate to a new target.
      */
     fun start() {

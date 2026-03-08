@@ -6,6 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -20,6 +21,7 @@ class UrlRouterTest {
     private fun resetRouterState() {
         UrlRouter.clear()
         ActivityStackTracker.resetForTests()
+        UrlRouter.configuration().reset()
     }
 
     @Test
@@ -229,6 +231,45 @@ class UrlRouterTest {
     }
 
     @Test
+    fun navigation_putExtrasMap_mergesCrossPagePayload() {
+        resetRouterState()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val nested = android.os.Bundle().apply { putString("source", "feed") }
+
+        val intent = UrlRouter.navigation(activity, "sample://home")
+            .putExtras(
+                mapOf(
+                    "message" to "hello",
+                    "count" to 3,
+                    "meta" to nested,
+                    "trace" to "route-1" as CharSequence
+                )
+            )
+            .getIntent()
+
+        assertNotNull(intent)
+        assertEquals("hello", intent?.getStringExtra("message"))
+        assertEquals(3, intent?.getIntExtra("count", -1))
+        assertEquals("feed", intent?.getBundleExtra("meta")?.getString("source"))
+        assertEquals("route-1", intent?.getCharSequenceExtra("trace"))
+    }
+
+    @Test
+    fun navigation_putExtra_throwsForUnsupportedType() {
+        resetRouterState()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+
+        assertThrows(IllegalArgumentException::class.java) {
+            UrlRouter.navigation(activity, "sample://home")
+                .putExtra("bad", object {})
+        }
+    }
+
+    @Test
     fun stack_popCount_finishesRequestedActivities() {
         resetRouterState()
         val first = Robolectric.buildActivity(Activity::class.java).create().resume().get()
@@ -290,6 +331,112 @@ class UrlRouterTest {
         assertTrue(second.isFinishing)
         assertNotNull(nextIntent)
         assertEquals("app://home?from=stack", nextIntent?.dataString)
+    }
+
+    @Test
+    fun stack_results_mergesBundleIntentAndMapIntoResultIntent() {
+        resetRouterState()
+        val first = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+        ActivityStackTracker.from(first)
+        val second = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+
+        val bundle = android.os.Bundle().apply {
+            putString("from", "bundle")
+            putInt("step", 2)
+        }
+        val sourceIntent = android.content.Intent().apply {
+            putExtra("token", "abc")
+        }
+
+        UrlRouter.stack(second)
+            .result(bundle)
+            .result(sourceIntent)
+            .results(mapOf("status" to "done", "trace" to "stack-1" as CharSequence))
+            .start()
+
+        val resultIntent = shadowOf(second).resultIntent
+        assertNotNull(resultIntent)
+        assertEquals("bundle", resultIntent?.getStringExtra("from"))
+        assertEquals(2, resultIntent?.getIntExtra("step", -1))
+        assertEquals("abc", resultIntent?.getStringExtra("token"))
+        assertEquals("done", resultIntent?.getStringExtra("status"))
+        assertEquals("stack-1", resultIntent?.getCharSequenceExtra("trace"))
+    }
+
+    @Test
+    fun routeAspect_observesResolvedNavigationLifecycle() {
+        resetRouterState()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val events = mutableListOf<String>()
+        UrlRouter.configuration().addRouteAspect(object : RouteAspect {
+            override fun onNavigationStart(originalUri: android.net.Uri) {
+                events += "start:${originalUri}"
+            }
+
+            override fun onRouteResolved(originalUri: android.net.Uri, resolvedUri: android.net.Uri, target: Target) {
+                events += "resolved:${resolvedUri}"
+            }
+
+            override fun onIntentCreated(originalUri: android.net.Uri, intent: android.content.Intent) {
+                events += "intent:${intent.dataString}"
+            }
+
+            override fun onNavigationComplete(originalUri: android.net.Uri, intent: android.content.Intent) {
+                events += "complete:${intent.dataString}"
+            }
+        })
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+        UrlRouter.navigation(activity, "sample://home?from=aop").start()
+
+        assertEquals(
+            listOf(
+                "start:sample://home?from=aop",
+                "resolved:app://home?from=aop",
+                "intent:app://home?from=aop",
+                "complete:app://home?from=aop"
+            ),
+            events
+        )
+    }
+
+    @Test
+    fun routeAspect_observesRequestInterceptAndNotFound() {
+        resetRouterState()
+
+        val events = mutableListOf<String>()
+        UrlRouter.configuration()
+            .addRequestInterceptor(object : RequestInterceptor {
+                override fun intercept(uri: android.net.Uri): Boolean = uri.host == "blocked"
+            })
+            .addRouteAspect(object : RouteAspect {
+                override fun onNavigationStart(originalUri: android.net.Uri) {
+                    events += "start:${originalUri}"
+                }
+
+                override fun onRequestIntercepted(originalUri: android.net.Uri) {
+                    events += "request:${originalUri}"
+                }
+
+                override fun onTargetNotFound(originalUri: android.net.Uri) {
+                    events += "notfound:${originalUri}"
+                }
+            })
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+        UrlRouter.navigation(activity, "sample://blocked").start()
+        UrlRouter.navigation(activity, "sample://missing").start()
+
+        assertEquals(
+            listOf(
+                "start:sample://blocked",
+                "request:sample://blocked",
+                "start:sample://missing",
+                "notfound:sample://missing"
+            ),
+            events
+        )
     }
 
 }

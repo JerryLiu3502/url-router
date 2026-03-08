@@ -60,6 +60,7 @@ class Navigation(
      */
     fun putExtra(key: String, value: Any?): Navigation {
         when (value) {
+            null -> extras.putString(key, null)
             is String -> extras.putString(key, value)
             is Int -> extras.putInt(key, value)
             is Long -> extras.putLong(key, value)
@@ -67,6 +68,9 @@ class Navigation(
             is Float -> extras.putFloat(key, value)
             is Double -> extras.putDouble(key, value)
             is Bundle -> extras.putBundle(key, value)
+            is CharSequence -> extras.putCharSequence(key, value)
+            is java.io.Serializable -> extras.putSerializable(key, value)
+            else -> throw IllegalArgumentException("Unsupported extra type: ${value::class.java.name}")
         }
         return this
     }
@@ -84,6 +88,14 @@ class Navigation(
      */
     fun putExtras(intent: Intent): Navigation {
         intent.extras?.let(extras::putAll)
+        return this
+    }
+
+    /**
+     * Put all extras from a key-value map.
+     */
+    fun putExtras(values: Map<String, Any?>): Navigation {
+        values.forEach { (key, value) -> putExtra(key, value) }
         return this
     }
 

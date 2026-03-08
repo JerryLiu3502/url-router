@@ -16,6 +16,8 @@ A lightweight, modern URL router for Android applications.
 - **Preflight Inspection**: Check `hasTarget()` and inspect `getIntent()` before start
 - **Router Utilities**: `canOpen()` pre-check and `remove()` unregister APIs
 - **Stack Control**: Pop multiple activities with result delivery and chained navigation
+- **Cross-Page Payloads**: Batch extras/results from `Map`, `Bundle`, or `Intent`
+- **Route AOP Hooks**: Observe navigation lifecycle with lightweight aspects
 - **Simple API**: Clean, builder-based API
 
 ## Quick Start
@@ -82,6 +84,20 @@ UrlRouter.navigation(this, "myapp://profile")
     .start()
 ```
 
+Or send a batch payload to the target page:
+
+```kotlin
+UrlRouter.navigation(this, "myapp://profile")
+    .putExtras(
+        mapOf(
+            "userId" to 123,
+            "from" to "feed",
+            "trace" to "open-profile"
+        )
+    )
+    .start()
+```
+
 Or with path parameters:
 
 ```kotlin
@@ -143,6 +159,37 @@ UrlRouter.stack(this)
     .start()
 ```
 
+Or merge result payloads from multiple sources:
+
+```kotlin
+UrlRouter.stack(this)
+    .result(bundleOf("status" to "done"))
+    .result(intent)
+    .results(mapOf("trace" to "checkout-finished"))
+    .start()
+```
+
+### Route AOP Hooks
+
+Observe the routing lifecycle without changing navigation behavior:
+
+```kotlin
+UrlRouter.configuration()
+    .addRouteAspect(object : RouteAspect {
+        override fun onNavigationStart(originalUri: Uri) {
+            Log.d("Router", "start: $originalUri")
+        }
+
+        override fun onRouteResolved(originalUri: Uri, resolvedUri: Uri, target: Target) {
+            Log.d("Router", "resolved: $resolvedUri -> ${target.className}")
+        }
+
+        override fun onTargetNotFound(originalUri: Uri) {
+            Log.w("Router", "not found: $originalUri")
+        }
+    })
+```
+
 ## Sample Demo
 
 The `sample` app demonstrates:
@@ -153,6 +200,8 @@ The `sample` app demonstrates:
 - request interception for `sample://blocked`
 - target interception for `sample://web`
 - fallback handling for unknown routes
+- stack pop with result payload delivery
+- route lifecycle observation via `RouteAspect`
 
 ## Architecture
 

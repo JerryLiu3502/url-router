@@ -137,13 +137,17 @@ object UrlRouter {
             Log.d("UrlRouter", "Navigating to: $originalUri")
         }
 
+        notifyNavigationStart(originalUri)
+
         if (isRequestIntercepted(originalUri)) {
+            notifyRequestIntercepted(originalUri)
             return
         }
 
         val resolvedRoute = resolve(originalUri)
 
         if (resolvedRoute == null) {
+            notifyTargetNotFound(originalUri)
             handleTargetNotFound(originalUri)
             return
         }
@@ -152,11 +156,15 @@ object UrlRouter {
             Log.d("UrlRouter", "Resolved target: ${resolvedRoute.target.className}, uri: ${resolvedRoute.targetUri}")
         }
 
+        notifyRouteResolved(originalUri, resolvedRoute)
+
         if (isTargetIntercepted(originalUri, resolvedRoute.targetUri)) {
+            notifyTargetIntercepted(originalUri, resolvedRoute.targetUri)
             return
         }
 
         val intent = buildIntent(context, resolvedRoute, flags, extras)
+        notifyIntentCreated(originalUri, intent)
         
         if (context is Activity) {
             context.startActivity(intent)
@@ -164,6 +172,8 @@ object UrlRouter {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         }
+
+        notifyNavigationComplete(originalUri, intent)
     }
 
     /**
@@ -180,13 +190,17 @@ object UrlRouter {
             Log.d("UrlRouter", "Navigating for result to: $originalUri, requestCode=$requestCode")
         }
 
+        notifyNavigationStart(originalUri)
+
         if (isRequestIntercepted(originalUri)) {
+            notifyRequestIntercepted(originalUri)
             return
         }
 
         val resolvedRoute = resolve(originalUri)
 
         if (resolvedRoute == null) {
+            notifyTargetNotFound(originalUri)
             handleTargetNotFound(originalUri)
             return
         }
@@ -195,13 +209,18 @@ object UrlRouter {
             Log.d("UrlRouter", "Resolved target: ${resolvedRoute.target.className}, uri: ${resolvedRoute.targetUri}")
         }
 
+        notifyRouteResolved(originalUri, resolvedRoute)
+
         if (isTargetIntercepted(originalUri, resolvedRoute.targetUri)) {
+            notifyTargetIntercepted(originalUri, resolvedRoute.targetUri)
             return
         }
 
         val intent = buildIntent(activity, resolvedRoute, flags, extras)
+        notifyIntentCreated(originalUri, intent)
         
         activity.startActivityForResult(intent, requestCode)
+        notifyNavigationComplete(originalUri, intent)
     }
 
     internal fun hasTarget(uri: Uri): Boolean {
@@ -306,6 +325,36 @@ object UrlRouter {
                 addFlags(flags)
             }
         }
+    }
+
+    private fun notifyNavigationStart(originalUri: Uri) {
+        configuration.getRouteAspects().forEach { it.onNavigationStart(originalUri) }
+    }
+
+    private fun notifyRouteResolved(originalUri: Uri, resolvedRoute: ResolvedRoute) {
+        configuration.getRouteAspects().forEach {
+            it.onRouteResolved(originalUri, resolvedRoute.targetUri, resolvedRoute.target)
+        }
+    }
+
+    private fun notifyIntentCreated(originalUri: Uri, intent: Intent) {
+        configuration.getRouteAspects().forEach { it.onIntentCreated(originalUri, intent) }
+    }
+
+    private fun notifyNavigationComplete(originalUri: Uri, intent: Intent) {
+        configuration.getRouteAspects().forEach { it.onNavigationComplete(originalUri, intent) }
+    }
+
+    private fun notifyTargetNotFound(originalUri: Uri) {
+        configuration.getRouteAspects().forEach { it.onTargetNotFound(originalUri) }
+    }
+
+    private fun notifyRequestIntercepted(originalUri: Uri) {
+        configuration.getRouteAspects().forEach { it.onRequestIntercepted(originalUri) }
+    }
+
+    private fun notifyTargetIntercepted(originalUri: Uri, resolvedUri: Uri) {
+        configuration.getRouteAspects().forEach { it.onTargetIntercepted(originalUri, resolvedUri) }
     }
 }
 

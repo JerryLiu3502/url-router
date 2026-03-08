@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import me.jerry.urlrouter.LogInterceptor
 import me.jerry.urlrouter.RequestInterceptor
+import me.jerry.urlrouter.RouteAspect
 import me.jerry.urlrouter.Target
 import me.jerry.urlrouter.TargetInterceptor
 import me.jerry.urlrouter.TargetNotFoundHandler
@@ -39,6 +40,19 @@ class App : Application() {
                 override fun handle(uri: android.net.Uri): Boolean {
                     Toast.makeText(this@App, "Route not found: $uri", Toast.LENGTH_SHORT).show()
                     return true
+                }
+            })
+            .addRouteAspect(object : RouteAspect {
+                override fun onNavigationStart(originalUri: Uri) {
+                    android.util.Log.d("UrlRouter", "aspect:start -> $originalUri")
+                }
+
+                override fun onNavigationComplete(originalUri: Uri, intent: android.content.Intent) {
+                    android.util.Log.d("UrlRouter", "aspect:complete -> ${intent.data}")
+                }
+
+                override fun onTargetNotFound(originalUri: Uri) {
+                    android.util.Log.w("UrlRouter", "aspect:not-found -> $originalUri")
                 }
             })
 
