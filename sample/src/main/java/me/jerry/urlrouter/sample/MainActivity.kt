@@ -36,5 +36,13 @@ class MainActivity : Activity() {
             UrlRouter.navigation(this, "sample://blocked")
                 .start()
         }
+
+        findViewById<Button>(R.id.btn_stack_pop).setOnClickListener {
+            UrlRouter.stack(this)
+                .resultCode(RESULT_OK)
+                .result("from", "MainActivity")
+                .result("timestamp", System.currentTimeMillis())
+                .start()
+        }
     }
 }

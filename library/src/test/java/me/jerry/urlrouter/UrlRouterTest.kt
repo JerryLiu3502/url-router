@@ -10,11 +10,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class UrlRouterTest {
+
+    private fun resetRouterState() {
+        UrlRouter.clear()
+        ActivityStackTracker.resetForTests()
+    }
 
     @Test
     fun canOpen_returnsTrueForRegisteredRoute() {
@@ -220,6 +226,70 @@ class UrlRouterTest {
         assertNotNull(intent)
         assertEquals("feed", intent?.getStringExtra("from"))
         assertEquals("hot", intent?.getStringExtra("tab"))
+    }
+
+    @Test
+    fun stack_popCount_finishesRequestedActivities() {
+        resetRouterState()
+        val first = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+        ActivityStackTracker.from(first)
+        val second = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+        val third = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+
+        UrlRouter.stack(third)
+            .popCount(2)
+            .start()
+
+        assertFalse(first.isFinishing)
+        assertTrue(second.isFinishing)
+        assertTrue(third.isFinishing)
+    }
+
+    @Test
+    fun stack_withResult_andTarget_popsThenNavigates() {
+        resetRouterState()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val first = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+        ActivityStackTracker.from(first)
+        val second = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+
+        UrlRouter.stack(second)
+            .popCount(1)
+            .resultCode(Activity.RESULT_CANCELED)
+            .result("status", "cancelled")
+            .target("sample://home?from=stack")
+            .start()
+
+        val shadow = shadowOf(second)
+        assertEquals(Activity.RESULT_CANCELED, shadow.resultCode)
+        val resultIntent = shadow.resultIntent
+        assertNotNull(resultIntent)
+        assertEquals("cancelled", resultIntent.getStringExtra("status"))
+
+        // Verify navigation happened from first activity
+        val nextIntent = shadowOf(first).nextStartedActivity
+        assertNotNull(nextIntent)
+        assertEquals("app://home?from=stack", nextIntent?.dataString)
+    }
+
+    @Test
+    fun stack_target_navigatesAfterPop() {
+        resetRouterState()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val first = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+        ActivityStackTracker.from(first)
+        val second = Robolectric.buildActivity(Activity::class.java).create().resume().get()
+
+        UrlRouter.stack(second)
+            .target("sample://home?from=stack")
+            .start()
+
+        val nextIntent = shadowOf(first).nextStartedActivity
+        assertTrue(second.isFinishing)
+        assertNotNull(nextIntent)
+        assertEquals("app://home?from=stack", nextIntent?.dataString)
     }
 
 }

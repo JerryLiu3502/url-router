@@ -15,6 +15,7 @@ A lightweight, modern URL router for Android applications.
 - **Parameter Passing**: Auto-copy query params and path params into `Intent` extras
 - **Preflight Inspection**: Check `hasTarget()` and inspect `getIntent()` before start
 - **Router Utilities**: `canOpen()` pre-check and `remove()` unregister APIs
+- **Stack Control**: Pop multiple activities with result delivery and chained navigation
 - **Simple API**: Clean, builder-based API
 
 ## Quick Start
@@ -112,6 +113,34 @@ UrlRouter.apply("myapp://legacy-user/{id}", Target.redirect("myapp://user/{id}")
 
 val canOpen = UrlRouter.canOpen("myapp://user/42")
 UrlRouter.remove("myapp://legacy")
+```
+
+### Stack Control (Pop with Result)
+
+Pop the current activity and deliver a result:
+
+```kotlin
+UrlRouter.stack(this)
+    .result("selected", itemId)
+    .start()
+```
+
+Pop 2 activities and navigate to a new route:
+
+```kotlin
+UrlRouter.stack(this)
+    .popCount(2)
+    .target("myapp://home")
+    .start()
+```
+
+Pop with custom result code and payload:
+
+```kotlin
+UrlRouter.stack(this)
+    .resultCode(Activity.RESULT_CANCELED)
+    .result("reason", "user_backed_out")
+    .start()
 ```
 
 ## Sample Demo

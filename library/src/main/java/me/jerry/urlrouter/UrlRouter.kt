@@ -95,6 +95,13 @@ object UrlRouter {
     }
 
     /**
+     * Create a stack navigation builder for pop/result flows.
+     */
+    fun stack(context: Context): StackNavigation {
+        return StackNavigation(context, this)
+    }
+
+    /**
      * Pop back the current activity and optionally navigate to a fallback URL
      * 
      * @param context Context
