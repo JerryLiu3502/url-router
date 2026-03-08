@@ -49,6 +49,42 @@ class TargetMapTest {
     }
 
     @Test
+    fun find_matchesHostAndPathWhenIncomingUrlOmitsScheme() {
+        val map = TargetMap()
+        val detailsTarget = Target("DetailsActivity")
+
+        map.add("sample://profile/details", detailsTarget)
+
+        val resolved = map.find(Uri.parse("profile/details"))
+
+        assertEquals(detailsTarget, resolved)
+    }
+
+    @Test
+    fun find_matchesPathTemplateWhenIncomingSchemeDiffers() {
+        val map = TargetMap()
+        val userTarget = Target("UserActivity", pathTemplate = "/user/{id}")
+
+        map.add("sample://user/{id}", userTarget)
+
+        val resolved = map.find(Uri.parse("https://user/123"))
+
+        assertEquals(userTarget, resolved)
+    }
+
+    @Test
+    fun find_returnsNullWhenSchemeFallbackIsAmbiguous() {
+        val map = TargetMap()
+
+        map.add("sample://profile/details", Target("SampleDetailsActivity"))
+        map.add("https://profile/details", Target("WebDetailsActivity"))
+
+        val resolved = map.find(Uri.parse("profile/details"))
+
+        assertNull(resolved)
+    }
+
+    @Test
     fun target_extractPathParams_extractsCorrectly() {
         val target = Target("UserActivity", pathTemplate = "/user/{id}/post/{postId}")
         val uri = Uri.parse("sample://user/42/post/99")

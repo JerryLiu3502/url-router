@@ -2,6 +2,7 @@ package me.jerry.urlrouter
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 
@@ -64,6 +65,20 @@ class Navigation(
      */
     fun start() {
         urlRouter.startNavigation(context, currentUri, flags, extras)
+    }
+
+    /**
+     * Check whether the current route resolves to an Activity target.
+     */
+    fun hasTarget(): Boolean {
+        return urlRouter.hasTarget(currentUri)
+    }
+
+    /**
+     * Build the Intent that would be used for navigation without starting it.
+     */
+    fun getIntent(): Intent? {
+        return urlRouter.createIntent(context, currentUri, flags, extras)
     }
 
     /**

@@ -11,9 +11,10 @@ import android.os.Bundle
  * @param pathTemplate Optional path template with parameters like "/user/{id}"
  */
 data class Target(
-    val className: String,
+    val className: String = "",
     val schema: String = "",
-    val pathTemplate: String? = null
+    val pathTemplate: String? = null,
+    val redirectTo: String? = null
 ) {
     companion object {
         /**
@@ -22,7 +23,24 @@ data class Target(
         inline fun <reified T : android.app.Activity> create(schema: String = "", pathTemplate: String? = null): Target {
             return Target(T::class.java.name, schema, pathTemplate)
         }
+
+        /**
+         * Create a redirect target that resolves to another URI before intent creation.
+         */
+        fun redirect(destinationUrl: String, pathTemplate: String? = null): Target {
+            return Target(redirectTo = destinationUrl, pathTemplate = pathTemplate)
+        }
     }
+
+    /**
+     * Whether this mapping redirects to another URI.
+     */
+    fun isRedirect(): Boolean = !redirectTo.isNullOrBlank()
+
+    /**
+     * Whether this mapping points to an Activity target.
+     */
+    fun hasActivityTarget(): Boolean = className.isNotBlank()
 
     /**
      * Extract path parameters from the URI based on the path template
@@ -56,15 +74,88 @@ data class Target(
             Uri.parse("app://").buildUpon()
         }
 
-        // Use original host and path
-        originalUri.host?.let { builder.authority(it) }
-        originalUri.path?.let { builder.path(it) }
+        val routeSegments = originalUri.routeSegments()
+
+        if (!originalUri.authority.isNullOrEmpty()) {
+            builder.authority(originalUri.authority)
+            originalUri.path?.let { builder.path(it) }
+        } else if (routeSegments.isNotEmpty()) {
+            builder.authority(routeSegments.first())
+            routeSegments.drop(1)
+                .takeIf { it.isNotEmpty() }
+                ?.joinToString(separator = "/", prefix = "/")
+                ?.let { builder.path(it) }
+        }
 
         // Copy query parameters
         originalUri.queryParameterNames.forEach { key ->
             originalUri.getQueryParameters(key).forEach { value ->
                 builder.appendQueryParameter(key, value)
             }
+        }
+
+        originalUri.encodedFragment?.let { builder.encodedFragment(it) }
+
+        return builder.build()
+    }
+
+    /**
+     * Build the redirect URI for this target, preserving source params when possible.
+     */
+    fun buildRedirectUri(originalUri: Uri): Uri? {
+        val destination = redirectTo?.takeIf { it.isNotBlank() } ?: return null
+        val templateValues = collectTemplateValues(originalUri)
+
+        var resolvedDestination = destination
+        templateValues.forEach { (key, value) ->
+            resolvedDestination = resolvedDestination.replace("{$key}", Uri.encode(value))
+        }
+
+        return mergeOriginalParams(Uri.parse(resolvedDestination), originalUri)
+    }
+
+    private fun collectTemplateValues(uri: Uri): Map<String, String> {
+        val values = linkedMapOf<String, String>()
+        val pathParams = extractPathParams(uri)
+
+        pathParams.keySet().forEach { key ->
+            pathParams.getString(key)?.let { values[key] = it }
+        }
+
+        uri.queryParameterNames.forEach { key ->
+            uri.getQueryParameter(key)?.let { values.putIfAbsent(key, it) }
+        }
+
+        return values
+    }
+
+    private fun mergeOriginalParams(destinationUri: Uri, originalUri: Uri): Uri {
+        if (originalUri.queryParameterNames.isEmpty() && originalUri.encodedFragment == null) {
+            return destinationUri
+        }
+
+        val builder = destinationUri.buildUpon().clearQuery()
+        val existingKeys = linkedSetOf<String>()
+
+        destinationUri.queryParameterNames.forEach { key ->
+            existingKeys += key
+            destinationUri.getQueryParameters(key).forEach { value ->
+                builder.appendQueryParameter(key, value)
+            }
+        }
+
+        originalUri.queryParameterNames.forEach { key ->
+            if (key in existingKeys) {
+                return@forEach
+            }
+
+            originalUri.getQueryParameters(key).forEach { value ->
+                builder.appendQueryParameter(key, value)
+            }
+        }
+
+        if (destinationUri.encodedFragment == null) {
+            originalUri.encodedFragment?.let { builder.encodedFragment(it) }
         }
 
         return builder.build()
@@ -75,6 +166,10 @@ internal fun String.routeSegments(): List<String> {
     return trim('/')
         .split("/")
         .filter { it.isNotEmpty() }
+}
+
+internal fun String.isRoutePlaceholder(): Boolean {
+    return startsWith("{") && endsWith("}")
 }
 
 internal fun Uri.routeSegments(): List<String> {

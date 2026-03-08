@@ -1,9 +1,11 @@
 package me.jerry.urlrouter
 
 import android.app.Activity
-import android.net.Uri
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -42,6 +44,37 @@ class UrlRouterTest {
         val result = UrlRouter.canOpen("sample://user/123")
 
         assertTrue(result)
+    }
+
+    @Test
+    fun canOpen_matchesRouteWhenIncomingUrlOmitsScheme() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://profile/details", Target("DetailsActivity"))
+
+        val result = UrlRouter.canOpen("profile/details")
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun canOpen_followsRedirectToFinalActivityTarget() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://legacy", Target.redirect("sample://home"))
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val result = UrlRouter.canOpen("legacy")
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun canOpen_returnsFalseForBrokenRedirectTarget() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://legacy", Target.redirect("sample://missing"))
+
+        val result = UrlRouter.canOpen("sample://legacy")
+
+        assertFalse(result)
     }
 
     @Test
@@ -88,5 +121,36 @@ class UrlRouterTest {
         // Just verify the method exists and doesn't throw
         // Actual startActivityForResult verification requires more complex Robolectric setup
         navigation.startForResult(activity, 1001)
+    }
+
+    @Test
+    fun navigation_hasTargetAndGetIntent_resolveRedirectedRoute() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://legacy/{id}", Target.redirect("sample://user/{id}"))
+        UrlRouter.apply("sample://user/{id}", Target("UserActivity", pathTemplate = "/user/{id}"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val navigation = UrlRouter.navigation(activity, "legacy/42?from=feed")
+
+        assertTrue(navigation.hasTarget())
+
+        val intent = navigation.getIntent()
+
+        assertNotNull(intent)
+        assertEquals("app://user/42?from=feed", intent?.dataString)
+        assertEquals("42", intent?.getStringExtra("id"))
+        assertEquals("feed", intent?.getStringExtra("from"))
+    }
+
+    @Test
+    fun navigation_getIntentReturnsNullWhenNoFinalTargetExists() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://legacy", Target.redirect("sample://missing"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val navigation = UrlRouter.navigation(activity, "legacy")
+
+        assertFalse(navigation.hasTarget())
+        assertNull(navigation.getIntent())
     }
 }

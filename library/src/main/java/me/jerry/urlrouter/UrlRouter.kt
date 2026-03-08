@@ -25,6 +25,7 @@ import android.util.Log
  */
 object UrlRouter {
 
+    private const val maxRedirectHops = 8
     private val configuration = Configuration()
     private val targetMap = TargetMap()
 
@@ -68,14 +69,14 @@ object UrlRouter {
      */
     fun canOpen(url: String): Boolean {
         val uri = Uri.parse(url)
-        return targetMap.find(uri) != null
+        return resolve(uri) != null
     }
 
     /**
      * Check if a URI can be opened (has a matching target)
      */
     fun canOpen(uri: Uri): Boolean {
-        return targetMap.find(uri) != null
+        return resolve(uri) != null
     }
 
     /**
@@ -129,58 +130,26 @@ object UrlRouter {
             Log.d("UrlRouter", "Navigating to: $originalUri")
         }
 
-        // Step 1: Request interceptors
-        for (interceptor in configuration.getRequestInterceptors()) {
-            if (interceptor.intercept(originalUri)) {
-                if (configuration.debugEnabled) {
-                    Log.d("UrlRouter", "Request intercepted, stopping navigation")
-                }
-                return
-            }
-        }
-
-        // Step 2: Find target
-        val target = targetMap.find(originalUri)
-
-        if (target == null) {
-            // Step 3: Target not found - try handlers
-            var handled = false
-            for (handler in configuration.getTargetNotFoundHandlers()) {
-                if (handler.handle(originalUri)) {
-                    handled = true
-                    break
-                }
-            }
-
-            if (!handled && configuration.debugEnabled) {
-                Log.w("UrlRouter", "No target found for: $originalUri")
-            }
+        if (isRequestIntercepted(originalUri)) {
             return
         }
 
-        // Step 4: Build target URI
-        val targetUri = target.buildUri(originalUri)
+        val resolvedRoute = resolve(originalUri)
+
+        if (resolvedRoute == null) {
+            handleTargetNotFound(originalUri)
+            return
+        }
 
         if (configuration.debugEnabled) {
-            Log.d("UrlRouter", "Resolved target: ${target.className}, uri: $targetUri")
+            Log.d("UrlRouter", "Resolved target: ${resolvedRoute.target.className}, uri: ${resolvedRoute.targetUri}")
         }
 
-        // Step 5: Target interceptors
-        for (interceptor in configuration.getTargetInterceptors()) {
-            if (interceptor.intercept(originalUri, targetUri)) {
-                if (configuration.debugEnabled) {
-                    Log.d("UrlRouter", "Target intercepted, stopping navigation")
-                }
-                return
-            }
+        if (isTargetIntercepted(originalUri, resolvedRoute.targetUri)) {
+            return
         }
 
-        // Step 6: Create and start Intent
-        val intent = configuration.intentHandler.createIntent(context, target, targetUri)
-        intent.putExtras(extras)
-        if (flags != 0) {
-            intent.addFlags(flags)
-        }
+        val intent = buildIntent(context, resolvedRoute, flags, extras)
         
         if (context is Activity) {
             context.startActivity(intent)
@@ -204,59 +173,136 @@ object UrlRouter {
             Log.d("UrlRouter", "Navigating for result to: $originalUri, requestCode=$requestCode")
         }
 
-        // Step 1: Request interceptors
+        if (isRequestIntercepted(originalUri)) {
+            return
+        }
+
+        val resolvedRoute = resolve(originalUri)
+
+        if (resolvedRoute == null) {
+            handleTargetNotFound(originalUri)
+            return
+        }
+
+        if (configuration.debugEnabled) {
+            Log.d("UrlRouter", "Resolved target: ${resolvedRoute.target.className}, uri: ${resolvedRoute.targetUri}")
+        }
+
+        if (isTargetIntercepted(originalUri, resolvedRoute.targetUri)) {
+            return
+        }
+
+        val intent = buildIntent(activity, resolvedRoute, flags, extras)
+        
+        activity.startActivityForResult(intent, requestCode)
+    }
+
+    internal fun hasTarget(uri: Uri): Boolean {
+        return resolve(uri) != null
+    }
+
+    internal fun createIntent(
+        context: Context,
+        uri: Uri,
+        flags: Int,
+        extras: Bundle
+    ): Intent? {
+        val resolvedRoute = resolve(uri) ?: return null
+        return buildIntent(context, resolvedRoute, flags, extras)
+    }
+
+    internal fun resolve(uri: Uri): ResolvedRoute? {
+        var currentUri = uri
+        val visited = linkedSetOf(uri.toString())
+
+        repeat(maxRedirectHops) {
+            val target = targetMap.find(currentUri) ?: return null
+            val redirectUri = target.buildRedirectUri(currentUri)
+
+            if (redirectUri == null) {
+                if (!target.hasActivityTarget()) {
+                    return null
+                }
+
+                return ResolvedRoute(
+                    target = target,
+                    targetUri = target.buildUri(currentUri)
+                )
+            }
+
+            if (!visited.add(redirectUri.toString())) {
+                if (configuration.debugEnabled) {
+                    Log.w("UrlRouter", "Redirect loop detected for: $uri")
+                }
+                return null
+            }
+
+            currentUri = redirectUri
+        }
+
+        if (configuration.debugEnabled) {
+            Log.w("UrlRouter", "Too many redirect hops for: $uri")
+        }
+
+        return null
+    }
+
+    private fun isRequestIntercepted(originalUri: Uri): Boolean {
         for (interceptor in configuration.getRequestInterceptors()) {
             if (interceptor.intercept(originalUri)) {
                 if (configuration.debugEnabled) {
                     Log.d("UrlRouter", "Request intercepted, stopping navigation")
                 }
-                return
+                return true
             }
         }
 
-        // Step 2: Find target
-        val target = targetMap.find(originalUri)
+        return false
+    }
 
-        if (target == null) {
-            // Step 3: Target not found - try handlers
-            var handled = false
-            for (handler in configuration.getTargetNotFoundHandlers()) {
-                if (handler.handle(originalUri)) {
-                    handled = true
-                    break
-                }
-            }
-
-            if (!handled && configuration.debugEnabled) {
-                Log.w("UrlRouter", "No target found for: $originalUri")
-            }
-            return
-        }
-
-        // Step 4: Build target URI
-        val targetUri = target.buildUri(originalUri)
-
-        if (configuration.debugEnabled) {
-            Log.d("UrlRouter", "Resolved target: ${target.className}, uri: $targetUri")
-        }
-
-        // Step 5: Target interceptors
+    private fun isTargetIntercepted(originalUri: Uri, targetUri: Uri): Boolean {
         for (interceptor in configuration.getTargetInterceptors()) {
             if (interceptor.intercept(originalUri, targetUri)) {
                 if (configuration.debugEnabled) {
                     Log.d("UrlRouter", "Target intercepted, stopping navigation")
                 }
-                return
+                return true
             }
         }
 
-        // Step 6: Create and start Intent for result
-        val intent = configuration.intentHandler.createIntent(activity, target, targetUri)
-        intent.putExtras(extras)
-        if (flags != 0) {
-            intent.addFlags(flags)
+        return false
+    }
+
+    private fun handleTargetNotFound(originalUri: Uri) {
+        var handled = false
+        for (handler in configuration.getTargetNotFoundHandlers()) {
+            if (handler.handle(originalUri)) {
+                handled = true
+                break
+            }
         }
-        
-        activity.startActivityForResult(intent, requestCode)
+
+        if (!handled && configuration.debugEnabled) {
+            Log.w("UrlRouter", "No target found for: $originalUri")
+        }
+    }
+
+    private fun buildIntent(
+        context: Context,
+        resolvedRoute: ResolvedRoute,
+        flags: Int,
+        extras: Bundle
+    ): Intent {
+        return configuration.intentHandler.createIntent(context, resolvedRoute.target, resolvedRoute.targetUri).apply {
+            putExtras(extras)
+            if (flags != 0) {
+                addFlags(flags)
+            }
+        }
     }
 }
+
+internal data class ResolvedRoute(
+    val target: Target,
+    val targetUri: Uri
+)

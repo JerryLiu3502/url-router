@@ -10,14 +10,18 @@ import android.net.Uri
 class DefaultIntentHandler : IntentHandler {
 
     override fun createIntent(context: Context, target: Target, uri: Uri): Intent {
+        require(target.hasActivityTarget()) { "Activity target must define className" }
+
+        val pathParams = target.extractPathParams(uri)
+
         return Intent(Intent.ACTION_VIEW).apply {
             data = uri
             setClassName(context, target.className)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
             // Add path parameters from template
-            target.extractPathParams(uri).keySet().forEach { key ->
-                putExtra(key, target.extractPathParams(uri).getString(key))
+            pathParams.keySet().forEach { key ->
+                putExtra(key, pathParams.getString(key))
             }
 
             // Add query parameters
