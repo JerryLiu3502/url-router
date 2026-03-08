@@ -44,6 +44,18 @@ class Navigation(
     }
 
     /**
+     * Add multiple query parameters.
+     */
+    fun appendQueryParameters(parameters: Map<String, String>): Navigation {
+        var builder = currentUri.buildUpon()
+        parameters.forEach { (key, value) ->
+            builder = builder.appendQueryParameter(key, value)
+        }
+        currentUri = builder.build()
+        return this
+    }
+
+    /**
      * Put an extra
      */
     fun putExtra(key: String, value: Any?): Navigation {

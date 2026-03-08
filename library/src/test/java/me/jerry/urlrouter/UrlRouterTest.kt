@@ -205,4 +205,21 @@ class UrlRouterTest {
         assertEquals("intent", intent?.getStringExtra("from"))
     }
 
+
+
+    @Test
+    fun navigation_appendQueryParameters_appendsAllPairs() {
+        UrlRouter.clear()
+        UrlRouter.apply("sample://home", Target("HomeActivity"))
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val intent = UrlRouter.navigation(activity, "sample://home")
+            .appendQueryParameters(mapOf("from" to "feed", "tab" to "hot"))
+            .getIntent()
+
+        assertNotNull(intent)
+        assertEquals("feed", intent?.getStringExtra("from"))
+        assertEquals("hot", intent?.getStringExtra("tab"))
+    }
+
 }
