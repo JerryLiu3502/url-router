@@ -2,6 +2,8 @@
 
 A lightweight, modern URL router for Android applications.
 
+> Test commit: 2026-03-08 10:17 - Verify Git push from AI agent
+
 ## Features
 
 - **URI Routing**: Map custom URL schemes to Activities
