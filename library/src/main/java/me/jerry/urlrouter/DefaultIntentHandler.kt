@@ -19,6 +19,10 @@ class DefaultIntentHandler : IntentHandler {
             setClassName(context, target.className)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
+            target.fragmentClassName?.let {
+                putExtra(FragmentIntentHandler.EXTRA_FRAGMENT_CLASS_NAME, it)
+            }
+
             // Add path parameters from template
             pathParams.keySet().forEach { key ->
                 putExtra(key, pathParams.getString(key))

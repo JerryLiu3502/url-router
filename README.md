@@ -18,6 +18,7 @@ A lightweight, modern URL router for Android applications.
 - **Stack Control**: Pop multiple activities with result delivery and chained navigation
 - **Cross-Page Payloads**: Batch extras/results from `Map`, `Bundle`, or `Intent`
 - **Route AOP Hooks**: Observe navigation lifecycle with lightweight aspects
+- **Fragment Targets**: Route into a host Activity while carrying fragment metadata
 - **Simple API**: Clean, builder-based API
 
 ## Quick Start
@@ -190,6 +191,27 @@ UrlRouter.configuration()
     })
 ```
 
+### Fragment Targets
+
+Use a host Activity plus fragment metadata when you want URL routes to land on a fragment page:
+
+```kotlin
+UrlRouter.apply(
+    "myapp://fragment/{id}",
+    Target.fragment(
+        hostActivityClassName = FragmentHostActivity::class.java.name,
+        fragmentClassName = MessageFragment::class.java.name,
+        pathTemplate = "/fragment/{id}"
+    )
+)
+
+val intent = UrlRouter.navigation(this, "myapp://fragment/42?tab=detail")
+    .putExtra("from", "feed")
+    .getIntent()
+
+val fragmentClassName = intent?.getStringExtra(FragmentIntentHandler.EXTRA_FRAGMENT_CLASS_NAME)
+```
+
 ## Sample Demo
 
 The `sample` app demonstrates:
@@ -202,6 +224,7 @@ The `sample` app demonstrates:
 - fallback handling for unknown routes
 - stack pop with result payload delivery
 - route lifecycle observation via `RouteAspect`
+- fragment-hosted page routing via `Target.fragment(...)`
 
 ## Architecture
 

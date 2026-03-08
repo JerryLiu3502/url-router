@@ -439,4 +439,29 @@ class UrlRouterTest {
         )
     }
 
+    @Test
+    fun navigation_getIntent_supportsFragmentTargetPayload() {
+        resetRouterState()
+        UrlRouter.apply(
+            "sample://fragment/{id}",
+            Target.fragment(
+                hostActivityClassName = "FragmentHostActivity",
+                fragmentClassName = "MessageFragment",
+                pathTemplate = "/fragment/{id}"
+            )
+        )
+
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val intent = UrlRouter.navigation(activity, "sample://fragment/42?tab=detail")
+            .putExtras(mapOf("from" to "test"))
+            .getIntent()
+
+        assertNotNull(intent)
+        assertEquals("FragmentHostActivity", intent?.component?.className)
+        assertEquals("MessageFragment", intent?.getStringExtra(FragmentIntentHandler.EXTRA_FRAGMENT_CLASS_NAME))
+        assertEquals("42", intent?.getStringExtra("id"))
+        assertEquals("detail", intent?.getStringExtra("tab"))
+        assertEquals("test", intent?.getStringExtra("from"))
+    }
+
 }

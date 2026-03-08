@@ -14,7 +14,8 @@ data class Target(
     val className: String = "",
     val schema: String = "",
     val pathTemplate: String? = null,
-    val redirectTo: String? = null
+    val redirectTo: String? = null,
+    val fragmentClassName: String? = null
 ) {
     companion object {
         /**
@@ -29,6 +30,23 @@ data class Target(
          */
         fun redirect(destinationUrl: String, pathTemplate: String? = null): Target {
             return Target(redirectTo = destinationUrl, pathTemplate = pathTemplate)
+        }
+
+        /**
+         * Create a fragment target hosted by an Activity.
+         */
+        fun fragment(
+            hostActivityClassName: String,
+            fragmentClassName: String,
+            schema: String = "",
+            pathTemplate: String? = null
+        ): Target {
+            return Target(
+                className = hostActivityClassName,
+                schema = schema,
+                pathTemplate = pathTemplate,
+                fragmentClassName = fragmentClassName
+            )
         }
     }
 

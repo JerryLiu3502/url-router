@@ -44,5 +44,16 @@ class MainActivity : Activity() {
                 .result("timestamp", System.currentTimeMillis())
                 .start()
         }
+
+        findViewById<Button>(R.id.btn_navigate_fragment).setOnClickListener {
+            UrlRouter.navigation(this, "sample://fragment/42")
+                .putExtras(
+                    mapOf(
+                        "from" to "MainActivity",
+                        "message" to "Hello Fragment"
+                    )
+                )
+                .start()
+        }
     }
 }

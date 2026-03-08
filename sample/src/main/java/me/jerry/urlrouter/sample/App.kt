@@ -67,7 +67,12 @@ class App : Application() {
                     TargetActivity::class.java.name,
                     pathTemplate = "/user/{id}"
                 ),
-                "sample://web" to Target(WebActivity::class.java.name)
+                "sample://web" to Target(WebActivity::class.java.name),
+                "sample://fragment/{id}" to Target.fragment(
+                    hostActivityClassName = FragmentContainerActivity::class.java.name,
+                    fragmentClassName = MessageFragment::class.java.name,
+                    pathTemplate = "/fragment/{id}"
+                )
             )
         )
     }
